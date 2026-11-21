@@ -1,0 +1,726 @@
+{
+  "info": {
+    "name": "NEXUS — OWASP API Security Top 10:2023 Lab",
+    "description": "Colección educativa para la API NEXUS de laboratorio. Todos los datos y operaciones son simulados. Las rutas /api/v1 son deliberadamente vulnerables; /api/secure/v1 implementa controles comparables. API7 no hace peticiones salientes.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost",
+      "type": "string"
+    },
+    {
+      "key": "demoToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "secureToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "secureRefresh",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00 — Reiniciar fixtures",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/lab/reset",
+        "description": "",
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "API1 — BOLA",
+      "item": [
+        {
+          "name": "Login Carlos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"carlos\",\n  \"password\": \"demo123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) pm.collectionVariables.set('demoToken', pm.response.json().accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Vulnerable — leer factura de María",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{demoToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/invoices/1042",
+            "description": ""
+          }
+        },
+        {
+          "name": "Login seguro — Carlos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/secure/v1/auth/login",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"carlos\",\n  \"password\": \"demo123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) { pm.collectionVariables.set('secureToken', pm.response.json().accessToken); pm.collectionVariables.set('secureRefresh', pm.response.json().refreshToken); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Seguro — misma factura de otro tenant (espera 404)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{secureToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/secure/v1/invoices/1042",
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "API2 — Broken Authentication",
+      "item": [
+        {
+          "name": "Vulnerable — token inventado sin firma",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiIsInRlbmFudElkIjoidC1hY21lIn0."
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/auth/profile",
+            "description": "JWT alg=none sintético. La ruta solo decodifica claims y no verifica firma."
+          }
+        },
+        {
+          "name": "Vulnerable — login Carlos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"carlos\",\n  \"password\": \"demo123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) pm.collectionVariables.set('demoToken', pm.response.json().accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Vulnerable — refresh reutilizable",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/auth/refresh",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{demoToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Seguro — login Carlos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/secure/v1/auth/login",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"carlos\",\n  \"password\": \"demo123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) { pm.collectionVariables.set('secureToken', pm.response.json().accessToken); pm.collectionVariables.set('secureRefresh', pm.response.json().refreshToken); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Seguro — perfil verifica firma/claims",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{secureToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/secure/v1/auth/profile",
+            "description": ""
+          }
+        },
+        {
+          "name": "Seguro — refresh de un solo uso",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/secure/v1/auth/refresh",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{secureRefresh}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) { pm.collectionVariables.set('secureToken', pm.response.json().accessToken); pm.collectionVariables.set('secureRefresh', pm.response.json().refreshToken); }"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "API3 — Property Level Authorization",
+      "item": [
+        {
+          "name": "Vulnerable — mass assignment role/tenant",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{demoToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/profile",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"displayName\": \"Carlos editado\",\n  \"role\": \"admin\",\n  \"tenantId\": \"t-beta\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Seguro — solo propiedades allowlist",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{secureToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/secure/v1/profile",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"displayName\": \"Carlos editado\",\n  \"role\": \"admin\",\n  \"tenantId\": \"t-beta\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "API4 — Resource Consumption",
+      "item": [
+        {
+          "name": "Vulnerable — límite enorme",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/orders?limit=999999",
+            "description": ""
+          }
+        },
+        {
+          "name": "Seguro — límite clamped y scope por usuario",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{secureToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/secure/v1/orders?limit=999999",
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "API5 — Function Authorization",
+      "item": [
+        {
+          "name": "Login admin seguro",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/secure/v1/auth/login",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"admin\",\n  \"password\": \"admin123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) pm.collectionVariables.set('adminToken', pm.response.json().accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Vulnerable — borrar usuario sin autorización",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/admin/users/maria",
+            "description": ""
+          }
+        },
+        {
+          "name": "Seguro — admin borra usuario del tenant",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/secure/v1/admin/users/test-acme",
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "API6 — Business Flow Abuse",
+      "item": [
+        {
+          "name": "Login Carlos para checkout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/secure/v1/auth/login",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"carlos\",\n  \"password\": \"demo123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) { pm.collectionVariables.set('secureToken', pm.response.json().accessToken); pm.collectionVariables.set('secureRefresh', pm.response.json().refreshToken); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Vulnerable — checkout repetible",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{demoToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/checkout",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"NEXUS-LIMITED-DEMO\",\n  \"quantity\": 50\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Seguro — cantidad limitada e idempotencia",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{secureToken}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "postman-demo-checkout-001"
+              }
+            ],
+            "url": "{{baseUrl}}/api/secure/v1/checkout",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"NEXUS-LIMITED-DEMO\",\n  \"quantity\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "API7 — SSRF (simulado, sin conexiones salientes)",
+      "item": [
+        {
+          "name": "Vulnerable — metadata ficticia",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/previews",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"http://169.254.169.254/latest/meta-data/\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Seguro — destino bloqueado por allowlist",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/secure/v1/previews",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"http://169.254.169.254/latest/meta-data/\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "API8 — Security Misconfiguration",
+      "item": [
+        {
+          "name": "Vulnerable — debug y CORS reflejado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "https://attacker.example"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/health",
+            "description": ""
+          }
+        },
+        {
+          "name": "Seguro — health mínimo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/secure/v1/health",
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "API9 — Inventory Management",
+      "item": [
+        {
+          "name": "Vulnerable — endpoint legacy activo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/legacy/reports",
+            "description": ""
+          }
+        },
+        {
+          "name": "Seguro — versión retirada (410)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/secure/v1/legacy/reports",
+            "description": ""
+          }
+        },
+        {
+          "name": "Inventario de versiones de demo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/meta/inventory",
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "API10 — Unsafe Consumption",
+      "item": [
+        {
+          "name": "Vulnerable — confía en precio externo enviado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/shipping/quote",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"service\": \"express\",\n  \"price\": 0.01,\n  \"currency\": \"USD\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Seguro — precio local y servicio allowlist",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/secure/v1/shipping/quote",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"service\": \"express\",\n  \"price\": 0.01,\n  \"currency\": \"USD\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

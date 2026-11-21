@@ -1,0 +1,31 @@
+services:
+  api:
+    build: ./api
+    environment:
+      LAB_MODE: "true"
+      LAB_SECRET: "${LAB_SECRET:?Define LAB_SECRET en .env antes de iniciar}"
+      PORT: "3000"
+    expose:
+      - "3000"
+    restart: unless-stopped
+    networks: [nexus]
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+  web:
+    build: .
+    ports:
+      - "80:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [nexus]
+    read_only: true
+    tmpfs: [/var/cache/nginx, /var/run]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+networks:
+  nexus:
+    driver: bridge

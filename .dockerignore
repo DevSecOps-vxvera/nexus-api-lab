@@ -1,0 +1,6 @@
+.git
+sources
+node_modules
+api/node_modules
+*.inspect.ndjson
+.env
