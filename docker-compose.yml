@@ -23,7 +23,7 @@ services:
     restart: unless-stopped
     networks: [nexus]
     read_only: true
-    tmpfs: [/var/cache/nginx, /var/run]
+    tmpfs: [/tmp:mode=1777,size=64m]
     security_opt: [no-new-privileges:true]
     cap_drop: [ALL]
 networks:

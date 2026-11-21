@@ -27,7 +27,7 @@ Al seleccionar una alternativa, se abre una vista a pantalla completa con pesta�
 
 Los enlaces internos son relativos, por lo que funcionan bajo una URL de proyecto (`usuario.github.io/repositorio/`). La fuente tipográfica Manrope/DM Mono se carga desde Google Fonts; si no hay conexión, se usan tipografías genéricas locales.
 
-El backend Docker con los 10 dominios de API, la colección de Postman y la guía de publicación en EC2 están en [API_GUIDE.md](API_GUIDE.md) y [DEPLOY_AWS.md](DEPLOY_AWS.md). Para descargar el paquete completo, usa `nexus-api-lab-docker-ec2.zip`.
+El backend Docker con los 10 dominios de API, la colección de Postman y la guía de publicación en EC2 están en [API_GUIDE.md](API_GUIDE.md) y [DEPLOY_AWS.md](DEPLOY_AWS.md). El paquete completo con estos archivos también está adjunto en esta conversación.
 
 ## Referencias oficiales verificadas
 
